@@ -44,7 +44,13 @@ class MainCoordinator: NSObject, Coordinator {
         watchdog = Watchdog.shared 
         super.init()
 
+        #if PREPAID_VERSION
+        BusinessModel.type = .prepaid
+        #else
+        BusinessModel.type = .freemium
+        #endif
         SettingsMigrator.processAppLaunch(with: Settings.current)
+        SystemIssueDetector.scanForIssues()
         Diag.info(AppInfo.description)
 
         navigationController.delegate = self
@@ -56,7 +62,10 @@ class MainCoordinator: NSObject, Coordinator {
     }
 
     func start() {
-        DatabaseManager.shared.closeDatabase(clearStoredKey: false)
+        DatabaseManager.shared.closeDatabase(
+            clearStoredKey: false,
+            ignoreErrors: true,
+            completion: nil)
         
         DatabaseManager.shared.addObserver(self)
         
@@ -90,9 +99,12 @@ class MainCoordinator: NSObject, Coordinator {
     }
     
     func cleanup() {
-        DatabaseManager.shared.removeObserver(self)
-        DatabaseManager.shared.closeDatabase(clearStoredKey: false)
         PremiumManager.shared.usageMonitor.stopInterval()
+        DatabaseManager.shared.removeObserver(self)
+        DatabaseManager.shared.closeDatabase(
+            clearStoredKey: false,
+            ignoreErrors: true,
+            completion: nil)
     }
 
     func dismissAndQuit() {
@@ -169,7 +181,7 @@ class MainCoordinator: NSObject, Coordinator {
         
         let allRefs = FileKeeper.shared.getAllReferences(fileType: .database, includeBackup: false)
         if allRefs.isEmpty {
-            let firstSetupVC = FirstSetupVC.make(coordinator: self)
+            let firstSetupVC = FirstSetupVC.make(delegate: self)
             firstSetupVC.navigationItem.hidesBackButton = true
             navigationController.pushViewController(firstSetupVC, animated: false)
             completion?()
@@ -184,11 +196,14 @@ class MainCoordinator: NSObject, Coordinator {
         }
     }
     
-    func addDatabase() {
+    func addDatabase(popoverAnchor: PopoverAnchor) {
         let picker = UIDocumentPickerViewController(
             documentTypes: FileType.databaseUTIs,
             in: .open)
         picker.delegate = self
+        if let popover = picker.popoverPresentationController {
+            popoverAnchor.apply(to: popover)
+        }
         navigationController.topViewController?.present(picker, animated: true, completion: nil)
         
         addDatabasePicker = picker
@@ -197,11 +212,13 @@ class MainCoordinator: NSObject, Coordinator {
     func removeDatabase(_ urlRef: URLReference) {
         FileKeeper.shared.removeExternalReference(urlRef, fileType: .database)
         try? Keychain.shared.removeDatabaseKey(databaseRef: urlRef)
+        Settings.current.forgetKeyFile(for: urlRef)
         refreshFileList()
     }
     
     func deleteDatabase(_ urlRef: URLReference) {
         try? Keychain.shared.removeDatabaseKey(databaseRef: urlRef)
+        Settings.current.forgetKeyFile(for: urlRef)
         do {
             try FileKeeper.shared.deleteFile(urlRef, fileType: .database, ignoreErrors: false)
         } catch {
@@ -244,9 +261,12 @@ class MainCoordinator: NSObject, Coordinator {
         }
     }
     
-    func addKeyFile() {
+    func addKeyFile(popoverAnchor: PopoverAnchor) {
         let picker = UIDocumentPickerViewController(documentTypes: FileType.keyFileUTIs, in: .open)
         picker.delegate = self
+        if let popover = picker.popoverPresentationController {
+            popoverAnchor.apply(to: popover)
+        }
         navigationController.topViewController?.present(picker, animated: true, completion: nil)
         
         addKeyFilePicker = picker
@@ -259,7 +279,6 @@ class MainCoordinator: NSObject, Coordinator {
     
     func selectKeyFile() {
         let vc = KeyFileChooserVC.instantiateFromStoryboard()
-        vc.coordinator = self
         vc.delegate = self
         navigationController.pushViewController(vc, animated: true)
     }
@@ -343,16 +362,16 @@ extension MainCoordinator: DatabaseChooserDelegate {
         dismissAndQuit()
     }
     
-    func databaseChooserShouldAddDatabase(_ sender: DatabaseChooserVC) {
+    func databaseChooserShouldAddDatabase(_ sender: DatabaseChooserVC, popoverAnchor: PopoverAnchor) {
         watchdog.restart()
         if sender.databaseRefs.count > 0 {
             if PremiumManager.shared.isAvailable(feature: .canUseMultipleDatabases) {
-                addDatabase()
+                addDatabase(popoverAnchor: popoverAnchor)
             } else {
                 offerPremiumUpgrade(from: sender, for: .canUseMultipleDatabases)
             }
         } else {
-            addDatabase()
+            addDatabase(popoverAnchor: popoverAnchor)
         }
     }
     
@@ -395,7 +414,7 @@ extension MainCoordinator: DatabaseUnlockerDelegate {
 
 extension MainCoordinator: KeyFileChooserDelegate {
     
-    func keyFileChooser(_ sender: KeyFileChooserVC, didSelectFile urlRef: URLReference?) {
+    func didSelectFile(in keyFileChooser: KeyFileChooserVC, urlRef: URLReference?) {
         watchdog.restart()
         navigationController.popViewController(animated: true) 
         if let databaseUnlockerVC = navigationController.topViewController as? DatabaseUnlockerVC {
@@ -403,6 +422,10 @@ extension MainCoordinator: KeyFileChooserDelegate {
         } else {
             assertionFailure()
         }
+    }
+    
+    func didPressAddKeyFile(in keyFileChooser: KeyFileChooserVC, popoverAnchor: PopoverAnchor) {
+        addKeyFile(popoverAnchor: popoverAnchor)
     }
 }
 
@@ -554,7 +577,10 @@ extension MainCoordinator: LongPressAwareNavigationControllerDelegate {
             !navigationController.viewControllers.contains(fromVC) else { return }
         
         if fromVC is EntryFinderVC {
-            DatabaseManager.shared.closeDatabase(clearStoredKey: false)
+            DatabaseManager.shared.closeDatabase(
+                clearStoredKey: false,
+                ignoreErrors: true,
+                completion: nil) 
         }
     }
     
@@ -595,8 +621,21 @@ extension MainCoordinator: EntryFinderDelegate {
     }
     
     func entryFinderShouldLockDatabase(_ sender: EntryFinderVC) {
-        DatabaseManager.shared.closeDatabase(clearStoredKey: true)
-        navigationController.popToRootViewController(animated: true)
+        DatabaseManager.shared.closeDatabase(
+            clearStoredKey: true,
+            ignoreErrors: false,
+            completion: { [weak self] (errorMessage) in
+                if let errorMessage = errorMessage {
+                    let errorAlert = UIAlertController.make(
+                        title: LString.titleError,
+                        message: errorMessage,
+                        cancelButtonTitle: LString.actionDismiss)
+                    self?.navigationController.present(errorAlert, animated: true, completion: nil)
+                } else {
+                    self?.navigationController.popToRootViewController(animated: true)
+                }
+            }
+        )
     }
 }
 
@@ -690,7 +729,7 @@ extension MainCoordinator: WatchdogDelegate {
                 Diag.info("Biometric auth successful")
                 DispatchQueue.main.async {
                     [weak self] in
-                    self?.watchdog.unlockApp(fromAnotherWindow: true)
+                    self?.watchdog.unlockApp()
                 }
             } else {
                 Diag.warning("Biometric auth failed [message: \(authError?.localizedDescription ?? "nil")]")
@@ -712,12 +751,17 @@ extension MainCoordinator: PasscodeInputDelegate {
     func passcodeInput(_ sender: PasscodeInputVC, didEnterPasscode passcode: String) {
         do {
             if try Keychain.shared.isAppPasscodeMatch(passcode) { 
-                watchdog.unlockApp(fromAnotherWindow: false)
+                HapticFeedback.play(.appUnlocked)
+                watchdog.unlockApp()
             } else {
+                HapticFeedback.play(.wrongPassword)
                 sender.animateWrongPassccode()
                 if Settings.current.isLockAllDatabasesOnFailedPasscode {
                     try? Keychain.shared.removeAllDatabaseKeys() 
-                    DatabaseManager.shared.closeDatabase(clearStoredKey: true)
+                    DatabaseManager.shared.closeDatabase(
+                        clearStoredKey: true,
+                        ignoreErrors: true,
+                        completion: nil)
                 }
             }
         } catch {
@@ -740,5 +784,15 @@ extension MainCoordinator: CrashReportDelegate {
         
         navigationController.viewControllers.removeAll()
         showDatabaseChooser(canPickDefaultDatabase: false, completion: nil)
+    }
+}
+
+extension MainCoordinator: FirstSetupDelegate {
+    func didPressCancel(in firstSetup: FirstSetupVC) {
+        dismissAndQuit()
+    }
+    
+    func didPressAddDatabase(in firstSetup: FirstSetupVC, at popoverAnchor: PopoverAnchor) {
+        addDatabase(popoverAnchor: popoverAnchor)
     }
 }

@@ -1,5 +1,83 @@
 #CHANGELOG
 
+## [1.08.48] - 2019-11-27
+
+### Added
+
+- AutoFill will automatically select the found entry, if there is only one (closes #76) [thanks, Igor]
+
+### Fixed
+
+- A possible fix for the file picker issues in AutoFill (#79) [thanks, Thorsten]
+
+
+## [1.08.47] - 2019-11-25
+
+### Changed
+
+- Auto-unlock databases whenever possible (2nd attempt)
+
+
+## [1.08.46] - 2019-11-25
+
+### Fixed
+
+- Improved handling of databases that close slowly
+
+
+## [1.08.45] - 2019-11-24
+
+### Changed
+
+- Reverted: auto-unlock from v1.07.44 (it was very unstable, will be re-tried in a separate build)
+- Added a confirmation dialog when locking database manually [thanks, Tim]
+- Added timestamps to diagnostic log to help debugging slow operations
+
+### Fixed
+
+- AutoFill stuck in FaceID loop on iOS 13.2.3 (fixes #74)
+- Sometimes entries incorrectly appeared as expired [thanks, Felix]
+- Double unlock screen after database creation (fixes #68) [thanks, magebarf]
+- Repetitive Welcome screen after clearing backup files [thanks, Chris]
+
+
+## [1.07.44] - 2019-11-11
+
+### Changed
+
+- Databases with a stored master key will unlock automatically when appropriate.
+
+
+## [1.07.43] - 2019-11-10
+
+### Added
+
+- Haptic feedback for some UI actions
+
+### Changed
+
+- Won't force-erase the master key from keychain on database errors [thanks, Silunare]
+
+### Fixed
+
+- With passcode-only AppLock, database list flashed visible on launch [thanks, Joseph]
+- AppLock worked intermittently on iOS 13.2 (#72) [thanks, loblawbob]
+- Compatibility with other installed KeePass apps [thanks, Philippe]
+- Removing key file associations when deleting a database [thanks, M.H.]
+- Premium features missing in Pro version's AutoFill [thanks, J.B.]
+
+
+## [1.06.42] - 2019-10-18
+
+### Changed
+
+- "Database timeout" option now defaults to Never instead of 1 hour.
+
+### Fixed
+
+- Fix layout of the item counter in group viewer [thanks, Simone]
+
+
 ## [1.06.41] - 2019-10-14
 
 ### Added

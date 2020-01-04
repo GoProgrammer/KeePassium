@@ -52,6 +52,9 @@
 /* Action/button to close current database (for example, when leaving the root group). NOTE: closing does not necessarily lock the database. */
 "[Database/Opened/action] Close" = "Schließen";
 
+/* Action/button to lock current database (the next time, it will ask for the master key). */
+"[Database/Opened/action] Lock Database" = "Datenbank sperren";
+
 /* Message to confirm removal of database file from the app. (This keeps the file, but removes its reference from the app.) */
 "[Database/Remove/Confirm/text] Remove database from the list?\n The file will remain intact and you can add it again later." = "Datenbank aus der Liste entfernen?\n Die Datei bleibt erhalten und Sie können sie später erneut hinzufügen.";
 
@@ -96,6 +99,9 @@
 
 /* Default title of a new entry */
 "[Entry/New/defaultTitle] New Entry" = "Neuer Eintrag";
+
+/* A suggestion shown after specific file errors (either databases or key files). */
+"[File/PermissionDenied] Try to remove the file from the app, then add it again." = "Try to remove the file from the app, then add it again.";
 
 /* Field title */
 "[FileInfo/Field/title] Creation Date" = "Erstellungsdatum";
@@ -195,6 +201,9 @@
 
 /* Message to confirm deletion of a key file. */
 "[KeyFile/Delete/Confirm/text] Delete key file?\n Make sure you have a backup." = "Schlüssel-Datei löschen?\n Stellen Sie sicher, dass Sie ihre Daten gesichert haben.";
+
+/* Title of an announcement about the Pro version */
+"[News/2019/10/ProVersionReleaseNews/title] KeePassium Pro" = "KeePassium Pro";
 
 /* Message shown when opening an announcement in AutoFill */
 "[News/AutoFill/stubText] Please open the main app for the full announcement." = "Bitte öffnen Sie die Haupt-App für die vollständige Ankündigung.";

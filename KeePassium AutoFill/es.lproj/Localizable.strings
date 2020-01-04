@@ -26,7 +26,7 @@
 "[BiometricAuthType] Touch ID" = "Touch ID";
 
 /* Warning when trying to add a random file as a database. [fileName: String] */
-"[Database/Add] Selected file \"%@\" does not look like a database." = "El archivo seleccionado \"%@\" no parece una base de datos.";
+"[Database/Add] Selected file \"%@\" does not look like a database." = "El archivo seleccionado «%@» no parece una base de datos.";
 
 /* Action/button to create a new database */
 "[Database/Create/action] Create Database" = "Crear base de datos";
@@ -51,6 +51,9 @@
 
 /* Action/button to close current database (for example, when leaving the root group). NOTE: closing does not necessarily lock the database. */
 "[Database/Opened/action] Close" = "Cerrar";
+
+/* Action/button to lock current database (the next time, it will ask for the master key). */
+"[Database/Opened/action] Lock Database" = "Bloquear base de datos";
 
 /* Message to confirm removal of database file from the app. (This keeps the file, but removes its reference from the app.) */
 "[Database/Remove/Confirm/text] Remove database from the list?\n The file will remain intact and you can add it again later." = "¿Eliminar la base de datos de la lista?\n El archivo permanecerá intacto y se puede volver a añadir más tarde.";
@@ -98,7 +101,7 @@
 "[Entry/New/defaultTitle] New Entry" = "Nueva entrada";
 
 /* A suggestion shown after specific file errors (either databases or key files). */
-"[File/PermissionDenied] Try to remove the file from the app, then add it again." = "Try to remove the file from the app, then add it again.";
+"[File/PermissionDenied] Try to remove the file from the app, then add it again." = "Prueba a eliminar el archivo de la aplicación e inténtalo de nuevo.";
 
 /* Field title */
 "[FileInfo/Field/title] Creation Date" = "Fecha de creación";
